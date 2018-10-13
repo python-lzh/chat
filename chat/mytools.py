@@ -20,11 +20,13 @@ import xlrd
 import xlwt
 from functools import wraps
 
+
 class Error(Exception):
     """Base class for exceptions in this module."""
+
     def __init__(self, value):
         self.value = value
-        
+
     def __str__(self):
         return repr(self.value)
 
@@ -41,31 +43,36 @@ class MyEncoder(json.JSONEncoder):
     TypeError: datetime.datetime(2014, 03, 20, 12, 10, 44) is not JSON serializable
     Usage: json.dumps(data, cls=MyEncoder)
     """
+
     def default(self, obj):
         # if isinstance(obj, datetime.datetime):  
         #     return int(mktime(obj.timetuple()))  
         if isinstance(obj, datetime.datetime):
-            return obj.strftime('%Y-%m-%d %H:%M:%S')  
+            return obj.strftime('%Y-%m-%d %H:%M:%S')
         elif isinstance(obj, datetime.date):
-            return obj.strftime('%Y-%m-%d')  
+            return obj.strftime('%Y-%m-%d')
         else:
             return json.JSONEncoder.default(self, obj)
+
 
 def get_mac_address():
     """Get mac address.
     """
     mac = uuid.UUID(int=uuid.getnode()).hex[-12:]
-    return ":".join([mac[e:e+2] for e in range(0, 11, 2)])
+    return ":".join([mac[e:e + 2] for e in range(0, 11, 2)])
+
 
 def get_hostname():
     """Get hostname.
     """
     return socket.getfqdn(socket.gethostname())
 
+
 def get_ip_address(hostname):
     """Get host ip address.
     """
     return socket.gethostbyname(hostname)
+
 
 def get_host_ip():
     """Get host ip address.
@@ -78,13 +85,14 @@ def get_host_ip():
         s.close()
     return ip
 
+
 def get_current_function_name():
     """Get current function name.
     """
     return inspect.stack()[1][3]
 
 
-class Walk():
+class Walk(object):
     """Walk directory to batch processing.
     遍历目录进行批处理。
 
@@ -97,6 +105,7 @@ class Walk():
     - dirlist: All dirnames with full path in directory.
     - dnamelist: All dirnames in directory.
     """
+
     def __init__(self, db=None):
         self.filenum = 0
         self.filelist = []
@@ -122,7 +131,7 @@ class Walk():
         # 先添加目录级别
         self.dirlist.append(str(level))
         for file in files:
-            if os.path.isdir(path+'/'+file):
+            if os.path.isdir(path + '/' + file):
                 # 排除隐藏文件夹
                 if file[0] == '.':
                     pass
@@ -135,7 +144,7 @@ class Walk():
         for dirname in self.dirlist[1:]:
             print('-' * (int(self.dirlist[0])), dirname)
             # 递归打印目录下的所有文件夹和文件，目录级别+1
-            self.dir_print((int(self.dirlist[0])+1), path+'/'+dirname)
+            self.dir_print((int(self.dirlist[0]) + 1), path + '/' + dirname)
         for filename in self.filelist:
             print('-' * (int(self.dirlist[0])), filename)
             self.filenum = self.filenum + 1
@@ -181,7 +190,7 @@ class Walk():
                     self.filelist.append(subpath)
                     self.fnamelist.append(fname)
                     print(self.str_file(level) + fname)
-					# Handle file with specified method by pattern
+                    # Handle file with specified method by pattern
                     self.handle_file(subpath)
                 else:
                     leveli = level + 1
@@ -234,6 +243,7 @@ def time_me(info="used", format_string="ms"):
         format_string: Specifies the timing unit. 指定计时单位，例如's': 秒，'ms': 毫秒。
             Defaults to 's'.
     """
+
     def _time_me(func):
         @wraps(func)
         def _wrapper(*args, **kwargs):
@@ -243,12 +253,15 @@ def time_me(info="used", format_string="ms"):
             result = func(*args, **kwargs)
             end = time.clock()
             if format_string == "s":
-                print("%s %s %s"%(func.__name__, info, end - start), "s")
+                print("%s %s %s" % (func.__name__, info, end - start), "s")
             elif format_string == "ms":
-                print("%s %s %s" % (func.__name__, info, 1000*(end - start)), "ms")
+                print("%s %s %s" % (func.__name__, info, 1000 * (end - start)), "ms")
             return result
+
         return _wrapper
+
     return _time_me
+
 
 def get_timestamp(s=None, style='%Y-%m-%d %H:%M:%S', pattern='s'):
     """Get timestamp. 获取指定日期表示方式的时间戳或者当前时间戳。
@@ -269,6 +282,7 @@ def get_timestamp(s=None, style='%Y-%m-%d %H:%M:%S', pattern='s'):
     else:
         return int(time.time() * w[pattern])
 
+
 def get_current_time(format_string="%Y-%m-%d-%H-%M-%S", info=None):
     """Get current time with specific format_string.
     获取指定日期表示方式的当前时间。
@@ -288,6 +302,7 @@ def get_current_time(format_string="%Y-%m-%d-%H-%M-%S", info=None):
         current_time = result.encode().decode('unicode-escape')
     return current_time
 
+
 def get_age(format_string="%s年%s个月%s天", info="2016-7-25"):
     """Get age with specific format_string.
     获取指定日期表示方式的年龄。
@@ -298,9 +313,9 @@ def get_age(format_string="%s年%s个月%s天", info="2016-7-25"):
     """
     assert isinstance(format_string, str), "The format_string must be a string."
     assert isinstance(info, str), "The birthday must be a string."
-    
+
     # 方案1：根据日期字面差计算具体时长
-    mdays = [31, 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30] # 从12（0）月到11月
+    mdays = [31, 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30]  # 从12（0）月到11月
     ct = get_current_time(format_string="%Y-%m-%d")
     st = [int(i) for i in info.split('-')]
     et = [int(i) for i in ct.split('-')]
@@ -335,6 +350,7 @@ def get_age(format_string="%s年%s个月%s天", info="2016-7-25"):
     age = format_string % (str(year), str(month), str(day))
     return age
 
+
 # TODO：根据《流畅的Python》123页5.5节修改完善
 def random_item(mylist):
     """Get random item of data.
@@ -343,12 +359,14 @@ def random_item(mylist):
     Returns:
         item: Random item of data. 数据随机项。
     """
+    global item
     assert mylist is not None, "The list can not be None."
     if isinstance(mylist, list):
-        item = mylist[random.randint(0, len(mylist)-1)]
+        item = mylist[random.randint(0, len(mylist) - 1)]
     elif isinstance(mylist, str):
         item = mylist
     return item
+
 
 def file_replace(source_file, destination_file):
     """File replace.
@@ -361,6 +379,7 @@ def file_replace(source_file, destination_file):
     with open(source_file, 'r') as source:
         with open(destination_file, 'w') as destination:
             destination.write(source.read())
+
 
 def read_excel(filepath):
     """Get excel source.
@@ -384,12 +403,13 @@ def read_excel(filepath):
         raise TypeError("Can't get data from excel!") from xls_error
     return data
 
+
 def set_excel_style(name, height, bold=False):
     """Set excel style.
     """
-    style = xlwt.XFStyle() # 初始化样式
-    font = xlwt.Font() # 为样式创建字体
-    font.name = name # 例如'Times New Roman'
+    style = xlwt.XFStyle()  # 初始化样式
+    font = xlwt.Font()  # 为样式创建字体
+    font.name = name  # 例如'Times New Roman'
     font.bold = bold
     font.color_index = 4
     font.height = height
@@ -403,22 +423,23 @@ def set_excel_style(name, height, bold=False):
     style.font = font
     return style
 
+
 def write_excel(filename="demo.xlsx", sheets=None):
     """Write excel from data.
     """
-    file = xlwt.Workbook() # 创建工作簿
+    file = xlwt.Workbook()  # 创建工作簿
     for sheet in sheets:
-        new_sheet = file.add_sheet(sheet["name"], cell_overwrite_ok=True) # 创建sheet
+        new_sheet = file.add_sheet(sheet["name"], cell_overwrite_ok=True)  # 创建sheet
         info = sheet["info"]
         # 原始方案：键值没有固定顺序导出 excel
         # 生成表头
         # for col, key in enumerate(info.keys()):
-            # new_sheet.write(0, col, info[key], set_excel_style('Arial Black', 220, True))
-            # new_sheet.write(1, col, key, set_excel_style('Arial Black', 220, True))
+        # new_sheet.write(0, col, info[key], set_excel_style('Arial Black', 220, True))
+        # new_sheet.write(1, col, key, set_excel_style('Arial Black', 220, True))
         # 生成内容
         # for index, item in enumerate(sheet["items"]):
-            # for col, key in enumerate(info.keys()):
-                # new_sheet.write(index+2, col, item['n'][key])
+        # for col, key in enumerate(info.keys()):
+        # new_sheet.write(index+2, col, item['n'][key])
 
         # Modify：使键值按照指定顺序导出 excel (2018-1-8)
         for col, key in enumerate(info):
@@ -426,23 +447,25 @@ def write_excel(filename="demo.xlsx", sheets=None):
             new_sheet.write(1, col, key[0], set_excel_style('Arial Black', 220, True))
         for index, item in enumerate(sheet["items"]):
             for col, key in enumerate(info):
-                new_sheet.write(index+2, col, item['n'][key[0]])
-    file.save(filename) # 保存文件
+                new_sheet.write(index + 2, col, item['n'][key[0]])
+    file.save(filename)  # 保存文件
+
 
 def write_excel_sql(filename="demo.xlsx", sheets=None):
     """Write excel from data.
     """
-    file = xlwt.Workbook() # 创建工作簿
+    file = xlwt.Workbook()  # 创建工作簿
     for sheet in sheets:
-        new_sheet = file.add_sheet(sheet["name"], cell_overwrite_ok=True) # 创建sheet
+        new_sheet = file.add_sheet(sheet["name"], cell_overwrite_ok=True)  # 创建sheet
         info = sheet["info"]
         for col, key in enumerate(info):
             new_sheet.write(0, col, key[1], set_excel_style('Arial Black', 220, True))
             new_sheet.write(1, col, key[0], set_excel_style('Arial Black', 220, True))
         for index, item in enumerate(sheet["items"]):
             for col, key in enumerate(info):
-                new_sheet.write(index+2, col, item[col+1])
-    file.save(filename) # 保存文件
+                new_sheet.write(index + 2, col, item[col + 1])
+    file.save(filename)  # 保存文件
+
 
 def generate_dict(dictpath, sourcepath):
     """Generate dictionary file from sourcefile.
@@ -460,6 +483,7 @@ def generate_dict(dictpath, sourcepath):
                 tag = content[0]
                 for word in content[1:]:
                     new.write(word + " 2000 " + tag + "\n")
+
 
 def waitting():
     """Print waitting.

@@ -1,13 +1,15 @@
 # -*- coding:utf8 -*-
 import os
 import json
-from .mytools import get_timestamp
+from mytools import get_timestamp
 
 thispath = os.path.split(os.path.realpath(__file__))[0]
 with open(thispath + '/data/answer.xml', 'r', encoding="UTF-8") as file:
     answer = file.read()
 
-item = '''<item><Title><![CDATA[]]></Title><Description><![CDATA[]]></Description><PicUrl><![CDATA[{img_url}]]></PicUrl><Url><![CDATA[]]></Url></item>'''
+item = '''<item><Title><![CDATA[]]></Title><Description><![CDATA[]]></Description><PicUrl><![CDATA[{
+img_url}]]></PicUrl><Url><![CDATA[]]></Url></item> '''
+
 
 def answer2xml(data):
     """XML 封装答案
@@ -39,7 +41,7 @@ def answer2xml(data):
         if len(img_urls) > 1:
             xml_items = [item.format(img_url=url) for url in img_urls[1:]]
             items = ''.join(xml_items)
-    
+
     result['picurl'] = answer.format(
         timestamp=str(get_timestamp()),
         news='news',

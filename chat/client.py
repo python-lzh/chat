@@ -14,13 +14,14 @@ Available functions:
 
 import json
 import socket
-from .config import getConfig
+from config import getConfig
 # from .mytools import time_me
 
 mysock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 host = getConfig("nluclient", "host")
 port = int(getConfig("nluclient", "port"))
 mysock.connect((host, port))
+
 
 def question_pack(info="", userid="A0001", key="A0001"):
     """Package the question as the JSON format specified by the server.
@@ -36,13 +37,14 @@ def question_pack(info="", userid="A0001", key="A0001"):
         Packaged JSON format data. 打包好的json格式数据。
     """
     data = {
-        "userid": userid, # 用户唯一标识
-        "key": key, # API密钥
-        "ask_type": "txt", # 问题的类型(txt, img, audio, video)
-        "ask_content": info, # 问题内容
-        "state": "robotstate" # 机器人状态
+        "userid": userid,  # 用户唯一标识
+        "key": key,  # API密钥
+        "ask_type": "txt",  # 问题的类型(txt, img, audio, video)
+        "ask_content": info,  # 问题内容
+        "state": "robotstate"  # 机器人状态
         }
     return json.dumps(data)
+
 
 def config_pack(info="", userid="A0001", key="A0001"):
     """Package the config info as the JSON format specified by the server.
@@ -66,6 +68,7 @@ def config_pack(info="", userid="A0001", key="A0001"):
         }
     return json.dumps(data)
 
+
 def match(question="question", userid="A0001", key="A0001"):
     """Match the answers from the semantic knowledge database.
     从语义知识数据库搜索答案。
@@ -81,9 +84,10 @@ def match(question="question", userid="A0001", key="A0001"):
     """
     send = question_pack(question, userid, key)
     mysock.sendall(send.encode("UTF-8"))
-    received = mysock.recv(4096) # 2048->4096(2018-1-5 添加了 xml 后扩充)
+    received = mysock.recv(4096)  # 2048->4096(2018-1-5 添加了 xml 后扩充)
     received = received.decode("UTF-8")
     return received
+
 
 def config(info="", userid="A0001", key="A0001"):
     """Configure the semantic knowledge database.
@@ -104,6 +108,7 @@ def config(info="", userid="A0001", key="A0001"):
     received = received.decode("UTF-8")
     return received
 
+
 def start(userid=None, key=None):
     """Start Client.
     启动客户端。
@@ -118,7 +123,9 @@ def start(userid=None, key=None):
         else:
             result = match(question=question, userid=userid, key=key)
         # print(json.loads(result))
-        print(json.loads(result)['content'])
+        print(result)
+        # print(json.loads(result)['content'])
+
 
 # @time_me()
 def batch_test(filename, userid="A0001", key="A0001"):

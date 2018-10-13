@@ -12,7 +12,9 @@ import os
 import uuid
 import requests
 import pygame.mixer as mixer
-import win32com.client
+
+
+# import win32com.client
 
 
 class RequestError(Exception):
@@ -20,7 +22,8 @@ class RequestError(Exception):
     """
     pass
 
-class TTS():
+
+class TTS(object):
     """Online TTS. 在线语音合成。
 
     It support instantiated with customized audioplayer.
@@ -35,6 +38,7 @@ class TTS():
         url_post_base: The url of get requests。 POST请求的URL地址。
         language: The language of send text。 发送文本的语言。
     """
+
     def __init__(self, audioplayer=None, tempdir="."):
         if audioplayer:
             self.audioplayer = audioplayer
@@ -55,10 +59,10 @@ class TTS():
         """Get token. 获取API服务口令。
         """
         data = {
-	            "grant_type": "client_credentials",
-	            "client_id": self.app_key,
-	            "client_secret": self.secret_key
-	            }
+            "grant_type": "client_credentials",
+            "client_id": self.app_key,
+            "client_secret": self.secret_key
+        }
         response = requests.get(url=self.url_tok_base, params=data)
         access_token = response.json()['access_token']
         return access_token
@@ -70,13 +74,13 @@ class TTS():
         """
         assert isinstance(info, str), "Info must be a string!"
         data = {
-	            "tex": info,
-	            "lan": self.language,
-	            "vol": "9",
-	            "cuid": self.mac_address,
-	            "ctp": "1",
-	            "tok": self.access_token
-	            }
+            "tex": info,
+            "lan": self.language,
+            "vol": "9",
+            "cuid": self.mac_address,
+            "ctp": "1",
+            "tok": self.access_token
+        }
         headers = {"Content-Type": "audio/mp3"}
         try:
             response = requests.get(url=self.url_get_base, params=data, headers=headers)
@@ -89,20 +93,28 @@ class TTS():
             print(error)
 
 
-class LTTS():
+# todo 暂时支持windows下面的，我需要支持linux下面语音合成
+class LTTS(object):
     """Local TTS. 离线语音合成。
 
     Based on Microsoft SAPI.
     基于微软SAPI。
     """
+
     def __init__(self, service=None):
         if service:
             self.service = service
         else:
-            self.service = win32com.client.Dispatch("SAPI.SpVoice")
+            # self.service = win32com.client.Dispatch("SAPI.SpVoice")
+            print("not ")
         self.language = 'zh'
 
     def say(self, info):
         """Say info. 说出给定的信息。
         """
         self.service.Speak(info)
+
+
+tts = TTS()
+tts.get_token()
+tts.say("你好,打扰了")

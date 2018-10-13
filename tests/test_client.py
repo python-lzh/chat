@@ -6,6 +6,7 @@ import json
 from unittest import TestCase, main
 from chat.client import match, config, batch_test, start
 
+
 class TestMe(TestCase):
     def setUp(self):
         self.userid = "A0001"
@@ -45,7 +46,8 @@ class TestMe(TestCase):
 
     def test_start(self):
         start(userid=self.userid, key=self.key)
-        # pass
+        pass
+
 
 if __name__ == '__main__':
     main()

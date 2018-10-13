@@ -12,17 +12,17 @@ import json
 import sqlite3
 from collections import deque
 from py2neo import Graph, Node, Relationship, NodeSelector
-from .config import getConfig
-from .apilib import nlu_tuling, get_location_by_ip
-from .semantic import synonym_cut, segment, get_tag, similarity, check_swords, get_location
-from .mytools import time_me, get_current_time, random_item, get_age
-from .word2pinyin import pinyin_cut, jaccard_pinyin
+from config import getConfig
+from apilib import nlu_tuling, get_location_by_ip
+from semantic import synonym_cut, segment, get_tag, similarity, check_swords, get_location
+from mytools import time_me, get_current_time, random_item, get_age
+from word2pinyin import pinyin_cut, jaccard_pinyin
 
 log_do_not_know = getConfig("path", "do_not_know")
 
 
 # def get_navigation_location():
-    # """获取导航地点 
+    # """获取导航地点
     # """
     # try:
         # nav_db = getConfig("nav", "db")
@@ -40,7 +40,7 @@ log_do_not_know = getConfig("path", "do_not_know")
     # return names
 
 
-class Robot():
+class Robot(object):
     """NLU Robot.
     自然语言理解机器人。
 
@@ -65,7 +65,8 @@ class Robot():
     """
     # userid="A0001" 为通用身份，可通过 self.init_user 设置自定义身份和挂接知识库
     def __init__(self, password="train", userid="A0001"):
-        self.graph = Graph("http://localhost:7474/db/data/", password=password)
+        self.graph = Graph(getConfig("neo4j","uri"), password=password)
+        print(self.graph)
         self.selector = NodeSelector(self.graph)
         # self.locations = get_navigation_location()
         self.is_scene = False
@@ -74,7 +75,7 @@ class Robot():
         # self.usertopics = self.get_usertopics(userid=userid)
         # self.address = get_location_by_ip(self.user['city'])
         self.topic = ""
-        self.behavior = 0 # 场景类型 Add in 2018-6-7
+        self.behavior = 0  # 场景类型 Add in 2018-6-7
         self.last_step_error = False # 在场景内上一个问答是否正常 Add in 2018-6-12
         self.qa_id = get_current_time()
         self.qmemory = deque(maxlen=10)
@@ -110,8 +111,7 @@ class Robot():
         return "Hello! I'm {robotname} and I'm {robotage} years old.".format(**self.user)
 
     def init_user(self, userid=None, key=None):
-        self.user = self.selector.select("User").where("_.userid='" + userid + "'", \
-                    "_.key='" + key + "'").first()
+        self.user = self.selector.select("User").where("_.userid='" + userid + "'", "_.key='" + key + "'").first()
         if self.user:
             self.usertopics = self.get_usertopics(userid=userid)
             self.address = get_location_by_ip(self.user['city'])
@@ -152,7 +152,7 @@ class Robot():
         for item in self.graph.run(match_string):
             config["databases"].append(dict(name=item[0], bselected=item[1], available=item[2]))
         print("可配置信息：", config)
-        
+
         return config
 
     # @time_me()
@@ -208,7 +208,7 @@ class Robot():
         """
         # result = dict(question=question, name='', content=self.iformat(random_item(self.do_not_know)), \
             # context="", tid="", ftid="", url="", behavior=0, parameter="", txt="", img="", button="", valid=1)
-        
+
         # 模式1：模糊匹配
         # temp_sim = 0
         # sv1 = synonym_cut(question, 'wf')
@@ -225,10 +225,10 @@ class Robot():
                 # result["context"] = "user_navigation"
                 # result["behavior"] = int("0x001B", 16)
                 # return result
-        
+
         # 模式2：全匹配，判断“去”和地址关键词是就近的动词短语情况
         # for location in self.locations:
-            
+
             # keyword = "去" + location
             # if keyword in question:
                 # print("Original navigation")
@@ -427,7 +427,7 @@ class Robot():
         if not question:
             question = self.user['robotname']
         return question
-    
+
     @time_me()
     def search(self, question="question", tid="", userid="A0001", key="A0001"):
         """Nlu search. 语义搜索。
@@ -498,10 +498,10 @@ class Robot():
             # self.amemory.append(result) # 添加到普通记忆
             # self.pmemory.append(result)
             # return result
-        
+
         # ========================三、语义场景===========================
         result = copy.deepcopy(do_not_know)
-        
+
         # 全局上下文——重复
         for item in self.cmd_repeat:
             # TODO：确认返回的是正确的指令而不是例如唱歌时的结束语“可以了”
@@ -522,22 +522,22 @@ class Robot():
                 self.is_scene = False
                 self.topic = ''
                 self.behavior = 0
-                self.amemory.clear() # 清空场景记忆
-                self.pmemory.clear() # 清空场景上一步记忆
+                self.amemory.clear()  # 清空场景记忆
+                self.pmemory.clear()  # 清空场景上一步记忆
                 return result
-        
+
         # 场景——意图跳转（多轮闲聊） Add in 2018-6-7
         if self.is_scene and self.behavior == 0:
             for item in self.change_attention:
-                if item == question: # TODO：模糊匹配跳转模式
+                if item == question:  # TODO：模糊匹配跳转模式
                     result['behavior'] = 0
                     result['name'] = "换个话题"
                     result['context'] = self.topic
                     result['content'] = "好的，我们换个话题吧"''
                     self.is_scene = False
                     self.topic = ''
-                    self.amemory.clear() # 清空场景记忆
-                    self.pmemory.clear() # 清空场景上一步记忆
+                    self.amemory.clear()  # 清空场景记忆
+                    self.pmemory.clear()  # 清空场景上一步记忆
                     return result
 
         # 场景——上一步：返回父节点(通用模式)
@@ -560,7 +560,7 @@ class Robot():
                         parent = self.amemory[-1]
                         if parent['button']:
                             next_name = parent['button'].split('|')[-1]
-                            if next_name != '0': # 确定有下一步
+                            if next_name != '0':  # 确定有下一步
                                 # 下一步是当前场景节点的子节点
                                 # match_string = "MATCH (n:NluCell {name:'" + \
                                     # next_name + "', topic:'" + self.topic + \
@@ -572,7 +572,7 @@ class Robot():
                                     "' and n.ftid IN [" + str(int(parent['tid'])) + \
                                     "," + str(int(parent['ftid'])) + "] RETURN n"
 
-                                match_data = list(self.graph.run(match_string).data())                           
+                                match_data = list(self.graph.run(match_string).data())
                                 if match_data:
                                     node = match_data[0]['n']
                                     result = self.update_result(question, node)
@@ -582,9 +582,9 @@ class Robot():
                                     return result
                     self.last_step_error = True
                     return error_page
-          
-        # ==========================场景匹配=========================      
-        if self.is_scene: # 在场景中：语义模式+关键句模式
+
+        # ==========================场景匹配=========================
+        if self.is_scene:  # 在场景中：语义模式+关键句模式
             # 在场景内没有正确匹配时引导继续办理或者退出 Add in 2018-6-12
             if self.last_step_error:
                 if question in self.yes:
@@ -596,8 +596,8 @@ class Robot():
                     self.topic = ''
                     self.behavior = 0
                     self.last_step_error = False
-                    self.amemory.clear() # 清空场景记忆
-                    self.pmemory.clear() # 清空场景上一步记忆
+                    self.amemory.clear()  # 清空场景记忆
+                    self.pmemory.clear()  # 清空场景上一步记忆
                     return result
                 elif question in self.no:
                     result['behavior'] = self.behavior
@@ -629,7 +629,7 @@ class Robot():
                     # print("正确匹配到当前场景的子场景")
                     print("正确匹配到当前场景的子场景或同层级场景") # Modify：2018-2-26
                     self.pmemory.append(self.amemory[-1])
-                    self.amemory.append(result) # 添加到场景记忆
+                    self.amemory.append(result)  # 添加到场景记忆
                     self.last_step_error = False
                     return result
             # 场景中匹配不到返回引导提示
@@ -656,30 +656,30 @@ class Robot():
                 # usergraph_pinyin = [item['n'] for item in self.graph.run(match_pinyin).data()]
                 # if usergraph_pinyin:
                     # result = self.extract_pinyin(question, usergraph_pinyin)
-            if result["tid"] != '': # 匹配到场景节点
+            if result["tid"] != '':  # 匹配到场景节点
                 if int(result["tid"]) == 0:
                     print("不在场景中，匹配到场景根节点")
-                    self.is_scene = True # 进入场景
+                    self.is_scene = True  # 进入场景
                     self.topic = result["context"]
                     # 场景类型 Add in 2018-6-7
                     self.behavior = result["behavior"]
                     self.last_step_error = False
-                    self.amemory.clear() # 进入场景前清空普通记忆
+                    self.amemory.clear()  # 进入场景前清空普通记忆
                     self.pmemory.clear()
-                    self.amemory.append(result) # 添加到场景记忆
+                    self.amemory.append(result)  # 添加到场景记忆
                     self.pmemory.append(result)
                     return result
                 else:
-                    if result["behavior"] == 0: # Add in 2018-6-12
+                    if result["behavior"] == 0:  # Add in 2018-6-12
                         # 可以直接进入多轮闲聊子场景
                         print("不在场景中，匹配到闲聊场景子节点")
-                        self.is_scene = True # 进入场景
+                        self.is_scene = True  # 进入场景
                         self.topic = result["context"]
                         self.behavior = result["behavior"]
                         self.last_step_error = False
-                        self.amemory.clear() # 进入场景前清空普通记忆
+                        self.amemory.clear()  # 进入场景前清空普通记忆
                         self.pmemory.clear()
-                        self.amemory.append(result) # 添加到场景记忆
+                        self.amemory.append(result)  # 添加到场景记忆
                         self.pmemory.append(result)
                         return result
                     else:
@@ -712,7 +712,7 @@ class Robot():
                 # else:
                     # 问句中包含地址
                     # weather = nlu_tuling(question)
-                # 图灵API变更之前    
+                # 图灵API变更之前
                 # weather = nlu_tuling(question, loc=self.address)
                 # result["behavior"] = int("0x0000", 16)
                 # try:
@@ -738,9 +738,14 @@ class Robot():
         # if result["context"]: # 匹配到在线语义
             # self.amemory.append(result) # 添加到普通记忆
         # ==============================================================
-        
+
         # 追加记录回答不上的所有问题
         if not self.topic:
             with open(log_do_not_know, "a", encoding="UTF-8") as file:
                 file.write(question + "\n")
         return result
+
+
+robot = Robot(password="zeekling",userid="Aa01B04#")
+result = robot.search("你好")
+print(result)

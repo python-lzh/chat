@@ -10,6 +10,7 @@ from urllib.request import urlopen
 
 mac_address = uuid.UUID(int=uuid.getnode()).hex[-12:]
 
+
 def nlu_tuling(question, loc="上海"):
     """图灵 API 
     """
@@ -42,6 +43,7 @@ def nlu_tuling(question, loc="上海"):
     elif r['code'] == 314000: # 诗词类
         return '\n'.join([r['text'].replace('<br>','\n')])
 
+
 def get_location_by_ip(city="上海市"):
     """根据IP获取当前地址
     """
@@ -59,6 +61,7 @@ def get_location_by_ip(city="上海市"):
         print("采用默认城市：", location)
     return location
 
+
 def get_ll_by_address(address="", city="北京市"):
     """根据地址获取经纬度
     """
@@ -74,6 +77,7 @@ def get_ll_by_address(address="", city="北京市"):
     result = requests.post(url, data, timeout=20).text
     location = json.loads(result)
     return location
+
 
 def get_location_by_ll(lat=39.908832488104686, lng=116.39753319791058):
     """根据经纬度获取地址
@@ -91,6 +95,7 @@ def get_location_by_ll(lat=39.908832488104686, lng=116.39753319791058):
     result = requests.post(url, data, timeout=20).text
     location = json.loads(result)
     return location
+
 
 def down_mp3_by_url(song_url, song_name, song_size):
     """下载 url 对应的 MP3 资源
@@ -131,7 +136,8 @@ def down_mp3_by_url(song_url, song_name, song_size):
                         log_file.write("time out rm %s\n" % file_name)  
             break
     file.close()  
-    
+
+
 def music_baidu(song="", singer=""):
     """百度音乐 API
     """

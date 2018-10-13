@@ -5,7 +5,10 @@
 """
 from numpy import mat, zeros, where
 from pypinyin import pinyin, lazy_pinyin
+
+
 # from .mytools import time_me
+
 
 def sum_cosine(matrix, threshold):
     """Calculate the parameters of the semantic Jaccard model based on the
@@ -44,6 +47,7 @@ def sum_cosine(matrix, threshold):
     num = (row - count) if row > col else (col - count)
     return dict(total=total, num_not_match=num, total_dif=max_score)
 
+
 def match_pinyin(pinyin1, pinyin2):
     """Similarity score between two pinyin.
     计算两个拼音的相似度得分。
@@ -64,9 +68,10 @@ def match_pinyin(pinyin1, pinyin2):
     for i in range(0, len_short):
         if pv_short[i] == pv_long[i]:
             pv_match += 1
-    score = pv_match/len_long
+    score = pv_match / len_long
     return score
-    
+
+
 def jaccard_pinyin(pv1, pv2, threshold=0.7):
     """Similarity score between two pinyin vectors with jaccard.
     计算两个拼音向量的语义 jaccard 相似度得分。
@@ -88,14 +93,16 @@ def jaccard_pinyin(pv1, pv2, threshold=0.7):
     total = result["total"]
     total_dif = result["total_dif"]
     num = result["num_not_match"]
-    sim = total/(total + num*(1-total_dif))
+    sim = total / (total + num * (1 - total_dif))
     return sim
+
 
 def pinyin_cut(sentence, pattern=None):
     """Cut the sentence into phonetic vectors.
     将句子切分为拼音向量。
     """
     return lazy_pinyin(sentence)
+
 
 # @time_me()    
 def similarity_pinyin(sentence1, sentence2):
@@ -105,6 +112,7 @@ def similarity_pinyin(sentence1, sentence2):
     pv1 = pinyin_cut(sentence1)
     pv2 = pinyin_cut(sentence2)
     return jaccard_pinyin(pv1, pv2)
+
 
 if __name__ == '__main__':
     print(similarity_pinyin("我想办理粤通卡", "办理悦通卡"))

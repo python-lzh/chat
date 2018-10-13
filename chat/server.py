@@ -1,26 +1,27 @@
+#!/usr/bin/env python3
 # -*- coding:utf8 -*-
 """Create and start NLU TCPServer with socketserver.
 创建并启动语义理解服务器。
 
 The socketserver module simplifies the task of writing network servers.
 """
-import os
 import json
 import socketserver
-from .config import getConfig
-from .mytools import Walk, get_current_time
-from .graph import Database
+from config import getConfig
+from mytools import Walk, get_current_time
+from graph import Database
 # from .sql import Database
 # from .qa_sql import Robot
-from .ianswer import answer2xml
-from .qa import Robot
-
+from ianswer import answer2xml
+from qa import Robot
 
 kb = Database()
+
 
 class WalkUserData(Walk):
     def handle_file(self, filepath, pattern=None):
         kb.handle_excel(filepath)
+
 
 def add_qa(path=None, names=None):
     """Add subgraph from excel data.
@@ -29,6 +30,7 @@ def add_qa(path=None, names=None):
     print(path)
     fnamelist = walker.dir_process(1, path, style="fnamelist")
     print("知识库更新内容:", fnamelist)
+
 
 # 开机从U盘自动导入知识库
 add_qa(path=getConfig("path", "usbkb"))
@@ -44,14 +46,19 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
     It is instantiated once per connection to the server, and must override
     the 'handle' method to implement communication to the client.
     """
+
+    def __init__(self, request, client_address, server):
+        super().__init__(request, client_address, server)
+        self.robot = Robot(password=getConfig("neo4j", "password"))
+
     def handle(self):
         # 初始化语义服务器
         # 从 qa 初始化
-        robot = Robot(password=getConfig("neo4j", "password"))
+
         # 从 qa_sql 初始化
         # robot = Robot(path=getConfig("path", "db"), password=None)
         while True:
-			# self.request is the TCP socket connected to the client
+            # self.request is the TCP socket connected to the client
             self.data = self.request.recv(2048)
             if not self.data:
                 break
@@ -62,14 +69,12 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
             json_data = json.loads(self.data)
             # step 2.Get answer
             if "ask_content" in json_data.keys():
-                answer = robot.search(question=json_data["ask_content"], \
-                userid=json_data["userid"], key=json_data["key"])
+                answer = self.robot.search(question=json_data["ask_content"], userid=json_data["userid"], key=json_data["key"])
                 info = json_data["ask_content"]
                 # 其中 result['picurl'] 为 xml 格式
                 result = answer2xml(answer)
             elif "config_content" in json_data.keys():
-                answer = robot.configure(info=json_data["config_content"], \
-                userid=json_data["userid"], key=json_data["key"])
+                answer = self.robot.configure(info=json_data["config_content"], userid=json_data["userid"], key=json_data["key"])
                 info = json_data["config_content"]
                 result = answer
             print(answer)
@@ -79,13 +84,11 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
                 self.request.sendall(json.dumps(result).encode("UTF-8"))
             except:
                 with open(logpath, "a", encoding="UTF-8") as file:
-                    file.write(get_current_time("%Y-%m-%d %H:%M:%S") + "\n" \
-                    + "发送失败\n")
+                    file.write(get_current_time("%Y-%m-%d %H:%M:%S") + "\n" + "发送失败\n")
             # 追加日志
             with open(logpath, "a", encoding="UTF-8") as file:
                 # 写入接收数据中的内容字段
-                file.write(get_current_time("%Y-%m-%d %H:%M:%S") + "\n" \
-                    + info + "\n")
+                file.write(get_current_time("%Y-%m-%d %H:%M:%S") + "\n" + info + "\n")
                 # 写入正常问答
                 if "ask_content" in json_data.keys():
                     for key in ["question", "content", "behavior", "url", "context", "parameter", "picurl"]:
@@ -96,7 +99,7 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
                 file.write("\n")
 
 
-def start(host="localhost", port=7000):
+def start(host="localhost", port=6000):
     """Start NLU server.
 
     Create the server, binding to host and port. Then activate the server.
@@ -112,9 +115,9 @@ def start(host="localhost", port=7000):
     sock = socketserver.ThreadingTCPServer((host, port), MyTCPHandler)
     sock.serve_forever()
 
+
 if __name__ == "__main__":
     host = getConfig("nluserver", "host")
     port = int(getConfig("nluserver", "port"))
     start(host, port)
     # start()
-	

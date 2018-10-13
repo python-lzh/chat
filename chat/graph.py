@@ -8,11 +8,13 @@ import xlwt
 from collections import OrderedDict
 from py2neo import Graph, Node, Relationship, NodeSelector
 from tkinter.filedialog import askopenfilename
-from .mytools import read_excel, write_excel, set_excel_style
-from .semantic import get_tag
+
+from config import getConfig
+from mytools import read_excel, write_excel, set_excel_style
+from semantic import get_tag
 
 
-class Database():
+class Database(object):
     """Manage Database.
     管理数据库。
 
@@ -20,9 +22,10 @@ class Database():
     - rdb: Relational database. 关系数据库。
     - graph: Graph database. 图数据库。
     """
-    def __init__(self, password="train", userid="A0001"):
+    def __init__(self,  userid="A0001"):
         self.rdb = None
-        self.graph = Graph("http://localhost:7474/db/data", password=password)
+        password = getConfig("neo4j", "password")
+        self.graph = Graph("http://zeekling.mynatapp.cc:7474/nlu.db/data", password=password)
         self.selector = NodeSelector(self.graph)
         self.user = self.selector.select("User", userid=userid).first()
         if not self.user:
@@ -62,7 +65,7 @@ class Database():
         Args:
             pattern: Type of subgraph. 子图类型。
             label: Label of subgraph. 子图标签。
-        """ 
+        """
         assert filename is not None, "filename can not be None."
         self.delete(pattern=pattern, label=label)
         print("Delete successfully!")
@@ -79,7 +82,7 @@ class Database():
         Args:
             pattern: Type of subgraph. 子图类型。
             label: Label of subgraph. 子图标签。
-        """ 
+        """
         assert filename is not None, "filename can not be None."
         self.delete(pattern="n", label=label)
         print("Delete test standard successfully!")
@@ -218,13 +221,13 @@ class Database():
                         # 场景 topic 必须填写，问答 topic 可不填，若填写必须为 sheet_name
                         temp = table.cell(i, col_index[2]).value
                         topic =  temp if temp else sheet_name
-                        
+
                         temp = table.cell(i, col_index[3]).value
                         tid = int(temp) if temp != '' else ''
-                        
+
                         temp = table.cell(i, col_index[4]).value
                         ftid = int(temp) if temp != '' else ''
-                        
+
                         behavior = table.cell(i, col_index[5]).value
                         parameter = table.cell(i, col_index[6]).value
                         url = table.cell(i, col_index[7]).value
@@ -236,7 +239,7 @@ class Database():
                         button = table.cell(i, col_index[13]).value
                         description = table.cell(i, col_index[14]).value
                         # hot = 0 table.cell(i, col_index[15]).value
-					    # 3.Your processing function of excel data here                           
+					    # 3.Your processing function of excel data here
                         self.add_nlucell(name=name, content=content, topic=topic, \
                             tid=tid, ftid=ftid, behavior=behavior, parameter=parameter, \
                             url=url, tag=tag, keywords=keywords, api=api, txt=txt, \
@@ -288,7 +291,7 @@ class Database():
         for item in self.graph.run(match_str):
             kb.append(item['name'])
         return kb
-    
+
     def get_selected_kb(self):
         kb = []
         match_str = "MATCH (user:User {userid: '" + self.user['userid'] + "'})\
@@ -305,14 +308,14 @@ class Database():
         cypher_info = "MATCH (n:NluCell) WHERE n.topic='{topic}' RETURN n"
         # Modify：使键值按照指定顺序导出 excel (2018-1-8)
         info = [('name', '问题'), ('content', '回答'), ('topic', '场景标签'), ('tid', '场景ID'),
-            ('ftid', '父场景ID'), ('behavior', '行为'), ('parameter', '动作参数'), ('url', '资源'), 
-            ('tag', '语义标签'), ('keywords', '关键词'), ('api', '内置功能'), ('txt', '显示文本'), 
+            ('ftid', '父场景ID'), ('behavior', '行为'), ('parameter', '动作参数'), ('url', '资源'),
+            ('tag', '语义标签'), ('keywords', '关键词'), ('api', '内置功能'), ('txt', '显示文本'),
             ('img', '显示图片'), ('button', '显示按钮'), ('description', '场景描述'), ("hot", '搜索热度')]
         # Modify：若采用字典，可用如下方案(2018-1-9)
         # import collections
         # info = collections.OrderedDict(info)
         sheets = []
-        
+
         for name in names:
             subgraph = self.selector.select('Config', name=name).first()
             topics = subgraph["topic"].split(",") if subgraph else []
@@ -322,29 +325,29 @@ class Database():
                 item = list(self.graph.run(match_str).data())
                 items.extend(item)
             sheets.append({"name": name, "info": info, "items": items})
-            
+
         write_excel(filename=filename, sheets=sheets)
-        
+
     def download_scene(self, label="NluCell", filename=None, topic=''):
         """Match scene and download.
         """
         assert filename is not None, "Filename must be *.xls!"
         assert topic is not '', "Topic can not be ''!"
         info = [('name', '问题'), ('content', '回答'), ('topic', '场景标签'), ('tid', '场景ID'),
-            ('ftid', '父场景ID'), ('behavior', '行为'), ('parameter', '动作参数'), ('url', '资源'), 
-            ('tag', '语义标签'), ('keywords', '关键词'), ('api', '内置功能'), ('txt', '显示文本'), 
+            ('ftid', '父场景ID'), ('behavior', '行为'), ('parameter', '动作参数'), ('url', '资源'),
+            ('tag', '语义标签'), ('keywords', '关键词'), ('api', '内置功能'), ('txt', '显示文本'),
             ('img', '显示图片'), ('button', '显示按钮'), ('description', '场景描述'), ("hot", '搜索热度')]
         cypher_info = "MATCH (n:{label}) WHERE n.topic='{topic}' RETURN n"
         match_str = cypher_info.format(label=label, topic=topic)
-        
+
         config_info = "MATCH (n:Config) WHERE n.topic contains '{topic}' RETURN n.name as name"
         config = self.graph.run(config_info.format(topic=topic)).data()
         name = list(config)[0]['name'] if config else "业务场景"
-        
+
         items = list(self.graph.run(match_str).data())
         sheets = [{"name": name, "info": info, "items": items}]
         write_excel(filename=filename, sheets=sheets)
-    
+
     def upload(self, pattern='qa', names=[]):
         """上传知识库
         """
@@ -357,7 +360,7 @@ class Database():
 
     def generate_testcases(self, *, filename=None, custom_sheets=None, savedir='.'):
         """Generating test cases from data of excel.
-        
+
         custom_sheets 选择的子表格集合
         """
         assert filename is not None, "filename can not be None"
@@ -367,7 +370,7 @@ class Database():
             sheet_names = list(set(data_sheets).intersection(set(custom_sheets)))
         else:
             sheet_names = data_sheets
-            
+
         file = xlwt.Workbook() # 创建新excel-测试用例
         new_sheet = file.add_sheet("NluTest", cell_overwrite_ok=True) # 创建sheet
         keys = ["问题", "答案", "是否通过", "改进建议"]
@@ -377,7 +380,7 @@ class Database():
             new_sheet.write(1, col, key, set_excel_style('Arial Black', 220, True))
         count = 0
         testlist = []
-        # 生成内容       
+        # 生成内容
         for sheet_name in sheet_names:
             table = data.sheet_by_name(sheet_name)
             # 1.Select specified table
